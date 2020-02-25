@@ -1,63 +1,36 @@
-const ml = require('ml-regression');
-const csv = require('csvtojson');
-const SLR = ml.SLR; // Simple Linear Regression
-
-const csvFilePath = 'advertising.csv'; // Data
-let csvData = [], // parsed Data
-    X = [], // Input
-    y = []; // Output
-
-let regressionModel;
-
-const readline = require('readline'); // For user prompt to allow predictions
-
-const rl = readline.createInterface({
-    input: process.stdin, 
+const fs = require('fs');
+const readLine = require('readline').createInterface({
+    input: process.stdin,
     output: process.stdout
 });
 
-csv()
-    .fromFile(csvFilePath)
-    .subscribe(jsonObj => {
-        csvData.push(jsonObj);
-    })
-    .on('done', () => {
-        dressData(); // To get data points from JSON Objects
-        performRegression(); 
-    });
+const SimpleLinearRegression = require('ml-regression-simple-linear');
+let SLR;
 
-function performRegression() {
-    regressionModel = new SLR(X, y); // Train the model on training data
-    console.log(regressionModel.toString(3));
-    predictOutput();
-}
+const
+    x = [], // Input
+    y = []; // Output
 
-function dressData() {
-    /**
-     * One row of the data object looks like:
-     * {
-     *   TV: "10",
-     *   Radio: "100",
-     *   Newspaper: "20",
-     *   "Sales": "1000"
-     * }
-     *
-     * Hence, while adding the data points,
-     * we need to parse the String value as a Float.
-     */
-    csvData.forEach((row) => {
-        X.push(f(row.radio)); // or row['radio']
-        y.push(f(row.sales)); // or row['sales']
+const field = 'TV';
+const result = 'Sales';
+
+const json = JSON.parse(fs.readFileSync('./linear-regression/advertising.json', 'UTF-8'));
+// Initialize data into the two arrays.
+json.forEach((row) => {
+    // console.log(row[field] + ', ' + row[result]);
+    x.push(row[field]);
+    y.push(row[result]);
+});
+
+function learn() {
+    SLR = new SimpleLinearRegression(x, y);
+    console.log(SLR.toString(5));
+    readLine.question('Enter input X for prediction > ', (answer) => {
+        const parsedAnswer = parseFloat(answer);
+        const prediction = SLR.predict(parsedAnswer).toFixed(2);
+        console.log(`At X (${field}) = ${parsedAnswer}, y (${result}) = ${prediction}`);
+        learn();
     });
 }
 
-function f(s) {
-    return parseFloat(s);
-}
-
-function predictOutput() {
-    rl.question('Enter input X for prediction (Press CTRL+C to exit) : ', (answer) => {
-        console.log(`At X = ${answer}, y =  ${regressionModel.predict(parseFloat(answer)).toFixed(2)}`);
-        predictOutput();
-    });
-}
+learn();
